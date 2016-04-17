@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"sync"
 
 	"gopkg.in/yaml.v2"
 )
@@ -17,13 +18,10 @@ type Config struct {
 	Directory []string `yaml:"Directory"`
 }
 
-func search(query string, directories []string) string {
-	var result []byte
-	for _, directory := range directories {
-		out, _ := exec.Command("ag", query, directory).Output()
-		result = append(result, out...)
-	}
-	return string(result)
+func search(query string, directory string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	out, _ := exec.Command("ag", query, directory).Output()
+	fmt.Println(string(out))
 }
 
 func readConfigFile() Config {
@@ -50,6 +48,11 @@ func main() {
 	}
 
 	config := readConfigFile()
-	result := search(args[0], config.Directory)
-	fmt.Println(result)
+
+	var wg sync.WaitGroup
+	for _, directory := range config.Directory {
+		wg.Add(1)
+		go search(args[0], directory, &wg)
+	}
+	wg.Wait()
 }
