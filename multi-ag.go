@@ -20,10 +20,7 @@ type Config struct {
 
 func search(query string, directory string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	out, err := exec.Command("ag", query, directory).Output()
-	if err != nil {
-		fmt.Println(err)
-	}
+	out, _ := exec.Command("ag", query, directory).Output()
 	fmt.Println(string(out))
 }
 
