@@ -3,11 +3,16 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"sync"
 
 	"gopkg.in/yaml.v2"
+)
+
+var (
+	logger *log.Logger
 )
 
 func usage() {
@@ -21,7 +26,7 @@ type Config struct {
 func search(query string, directory string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	out, _ := exec.Command("ag", query, directory).Output()
-	fmt.Println(string(out))
+	logger.Println(string(out))
 }
 
 func readConfigFile() Config {
@@ -47,6 +52,7 @@ func main() {
 		os.Exit(2)
 	}
 
+	logger = log.New(os.Stdout, "", 0)
 	config := readConfigFile()
 
 	var wg sync.WaitGroup
