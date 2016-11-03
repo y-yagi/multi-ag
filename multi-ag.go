@@ -19,6 +19,7 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "usage: %s PATTERN\n", os.Args[0])
 }
 
+// Config type
 type Config struct {
 	Directory []string `yaml:"Directory"`
 }
