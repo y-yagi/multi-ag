@@ -30,31 +30,35 @@ func search(query string, directory string, wg *sync.WaitGroup) {
 	logger.Println(string(out))
 }
 
-func readConfigFile() Config {
+func readConfigFile() (Config, error) {
+	var config Config
 	configFile := os.Getenv("HOME") + "/.multi-ag.yml"
 
 	buf, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		panic(err)
+		return config, err
 	}
 
-	var parsedMap Config
-	if err = yaml.Unmarshal(buf, &parsedMap); err != nil {
-		panic(err)
+	if err = yaml.Unmarshal(buf, &config); err != nil {
+		return config, err
 	}
 
-	return parsedMap
+	return config, nil
 }
 
 func main() {
 	args := os.Args[1:]
 	if len(args) < 1 {
 		usage()
-		os.Exit(2)
+		os.Exit(1)
 	}
 
 	logger = log.New(os.Stdout, "", 0)
-	config := readConfigFile()
+	config, err := readConfigFile()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
 	var wg sync.WaitGroup
 	for _, directory := range config.Directory {
