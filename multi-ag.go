@@ -27,7 +27,9 @@ type Config struct {
 func search(query string, directory string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	out, _ := exec.Command("ag", query, directory).Output()
-	logger.Println(string(out))
+	if (len(string(out)) > 0) {
+		logger.Print(string(out))
+	}
 }
 
 func readConfigFile() (Config, error) {
