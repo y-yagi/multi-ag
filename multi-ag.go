@@ -1,14 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"sync"
 
-	"gopkg.in/yaml.v2"
+	"github.com/y-yagi/configure"
 )
 
 var (
@@ -19,36 +19,53 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "usage: %s PATTERN\n", os.Args[0])
 }
 
-// Config type
-type Config struct {
-	Directory []string `yaml:"Directory"`
+type config struct {
+	Directories []string `toml:"directories"`
+}
+
+func msg(err error) int {
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", os.Args[0], err)
+		return 1
+	}
+	return 0
 }
 
 func search(query string, directory string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	out, _ := exec.Command("ag", query, directory).Output()
-	if (len(string(out)) > 0) {
+	if len(string(out)) > 0 {
 		logger.Print(string(out))
 	}
 }
 
-func readConfigFile() (Config, error) {
-	var config Config
-	configFile := os.Getenv("HOME") + "/.multi-ag.yml"
-
-	buf, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		return config, err
+func cmdEdit() error {
+	editor := os.Getenv("EDITOR")
+	if len(editor) == 0 {
+		editor = "vim"
 	}
 
-	if err = yaml.Unmarshal(buf, &config); err != nil {
-		return config, err
-	}
+	return configure.Edit("multi-ag", editor)
+}
 
-	return config, nil
+func init() {
+	if !configure.Exist("multi-ag") {
+		var cfg config
+		cfg.Directories = []string{""}
+		configure.Save("multi-ag", cfg)
+	}
 }
 
 func main() {
+	var edit bool
+
+	flag.BoolVar(&edit, "c", false, "edit config")
+	flag.Parse()
+
+	if edit {
+		os.Exit(msg(cmdEdit()))
+	}
+
 	args := os.Args[1:]
 	if len(args) < 1 {
 		usage()
@@ -56,14 +73,16 @@ func main() {
 	}
 
 	logger = log.New(os.Stdout, "", 0)
-	config, err := readConfigFile()
+
+	var cfg config
+	err := configure.Load("multi-ag", &cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 
 	var wg sync.WaitGroup
-	for _, directory := range config.Directory {
+	for _, directory := range cfg.Directories {
 		wg.Add(1)
 		go search(args[0], directory, &wg)
 	}
