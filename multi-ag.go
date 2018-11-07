@@ -40,6 +40,7 @@ func search(query string, directory string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	out, _ := exec.Command("ag", query, directory).Output()
 	if len(string(out)) > 0 {
+		// NOTE: Logger is safe from multiple goroutines. Ref: https://golang.org/pkg/log/#Logger
 		logger.Print(string(out))
 	}
 }
